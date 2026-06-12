@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ステロイド高血糖">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1e6f9f">
+<meta name="format-detection" content="telephone=no">
+<title>ステロイド誘発性高血糖 インスリン調整支援ツール（v1）</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#ffffff; --ink:#1f2933; --muted:#6b7280;
+    --line:#e2e8f0; --brand:#1e6f9f; --brand-d:#155a82;
+    --ok:#15803d; --okbg:#dcfce7; --warn:#b45309; --warnbg:#fef3c7;
+    --danger:#b91c1c; --dangerbg:#fee2e2; --soft:#eef4f8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Hiragino Kaku Gothic ProN","Meiryo",system-ui,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.6;font-size:15px}
+  header.top{background:var(--brand);color:#fff;padding:14px 20px}
+  header.top h1{margin:0;font-size:18px;font-weight:700}
+  header.top p{margin:2px 0 0;font-size:12px;opacity:.9}
+  .disclaimer{background:var(--warnbg);color:#7c4a02;border-bottom:1px solid #f0d28a;
+       padding:8px 20px;font-size:12.5px}
+  .disclaimer b{color:#92400e}
+  .wrap{max-width:1080px;margin:0 auto;padding:16px 20px 60px}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;margin:14px 0 18px}
+  .tab{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);
+       border-radius:9px 9px 0 0;padding:10px 12px;cursor:pointer;text-align:center;
+       font-weight:600;font-size:13.5px;color:var(--muted);position:relative}
+  .tab.active{color:var(--brand);border-bottom:3px solid var(--brand);background:var(--soft)}
+  .tab .num{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--line);
+       color:var(--muted);align-items:center;justify-content:center;font-size:12px;margin-right:6px}
+  .tab.active .num{background:var(--brand);color:#fff}
+  .panel{display:none;animation:fade .2s}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+  .card h2{margin:0 0 4px;font-size:16px;color:var(--brand-d)}
+  .card h3{margin:18px 0 8px;font-size:14px;color:var(--ink);border-left:4px solid var(--brand);padding-left:8px}
+  .sub{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 18px}
+  label.fld{display:block;font-size:13px;font-weight:600;margin-bottom:14px}
+  label.fld .hint{display:block;font-weight:400;color:var(--muted);font-size:11.5px;margin-top:2px}
+  input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;
+       font-size:14px;margin-top:5px;background:#fff;font-family:inherit}
+  input:focus,select:focus{outline:2px solid #cfe3f0;border-color:var(--brand)}
+  .inline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .chip{padding:5px 11px;border:1px solid var(--line);border-radius:20px;font-size:12.5px;cursor:pointer;background:#fff}
+  .chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  button.btn{background:var(--brand);color:#fff;border:0;border-radius:8px;padding:10px 18px;
+       font-size:14px;font-weight:600;cursor:pointer}
+  button.btn:hover{background:var(--brand-d)}
+  button.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+  button.ghost:hover{background:var(--soft)}
+  .row-btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .result{background:var(--soft);border:1px solid #cfe0ea;border-radius:10px;padding:14px 16px;margin-top:14px}
+  .doseline{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px dashed #cdd8e0}
+  .doseline:last-child{border-bottom:0}
+  .doseline .v{font-size:18px;font-weight:700;color:var(--brand-d)}
+  .doseline .u{font-size:12px;color:var(--muted);margin-left:3px}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+  th,td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+  th{background:var(--soft);font-size:12.5px}
+  td input{margin:0;padding:4px 6px;font-size:13px}
+  .alert{border-radius:10px;padding:12px 14px;margin:12px 0;font-size:13.5px}
+  .alert.danger{background:var(--dangerbg);border:1px solid #f3a3a3;color:#7f1d1d}
+  .alert.warn{background:var(--warnbg);border:1px solid #f0d28a;color:#854d0e}
+  .alert.ok{background:var(--okbg);border:1px solid #a7e3bd;color:#14532d}
+  .alert.info{background:#e0f2fe;border:1px solid #93c5fd;color:#0c4a6e}
+  .alert b{display:block;margin-bottom:3px}
+  .muted{color:var(--muted);font-size:12px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:6px;font-size:12px;font-weight:600}
+  .badge.nph{background:#e0f2fe;color:#075985}
+  .badge.bbi{background:#fae8ff;color:#86198f}
+  .badge.basal{background:#ecfccb;color:#3f6212}
+  .pill{font-size:11px;background:var(--line);border-radius:5px;padding:1px 6px;color:var(--muted)}
+  .nextfoot{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:10px}
+  .glucinputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+  .glucinputs label{font-size:12px;font-weight:600}
+  details{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:6px 12px;background:#fafbfc}
+  summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--brand-d)}
+  .ref{font-size:11px;color:var(--muted);margin-top:2px}
+  .small{font-size:12px}
+  .scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .pbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .pbar select{flex:1;min-width:140px}
+  @media print{.tabs,.disclaimer,.row-btns,header.top p{display:none}.panel{display:block!important}}
+  @media (max-width:480px){
+    body{font-size:14px}
+    .wrap{padding:10px 12px 70px}
+    header.top{padding:12px 14px}
+    header.top h1{font-size:16px}
+    .card{padding:14px 13px;border-radius:10px}
+    .tab{min-width:0;flex:1 1 46%;padding:9px 6px;font-size:12.5px}
+    .tab .num{width:18px;height:18px;margin-right:4px}
+    .grid{grid-template-columns:1fr;gap:8px}
+    .glucinputs{grid-template-columns:repeat(2,1fr)}
+    button.btn{width:100%;padding:12px;font-size:15px}
+    .row-btns{flex-direction:column}
+    .row-btns button{width:100%}
+    .doseline .v{font-size:17px}
+    table{font-size:11.5px}
+    th,td{padding:5px 6px}
+    input,select{font-size:16px}  /* iOSの自動ズーム防止 */
+  }
+  @supports(padding:max(0px)){
+    header.top{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>ステロイド誘発性高血糖 インスリン調整支援ツール</h1>
+  <p>非ICU入院・朝1回プレドニゾロン想定 / v1（患者登録 → 初期レジメン → 日々調整・強化インスリン移行 → 減量・内服化）</p>
+</header>
+<div class="disclaimer">
+  <b>⚠ 臨床判断支援ツールです。</b>表示される量・スケールは院内プロトコル案に基づく<b>提案</b>であり、最終決定は必ず指示医が行ってください。院内での妥当性検証を前提とし、患者データは端末内のみで処理（外部送信なし）。
+</div>
+
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab active" data-tab="reg"><span class="num">1</span>患者登録</div>
+    <div class="tab" data-tab="init"><span class="num">2</span>初期レジメン提案</div>
+    <div class="tab" data-tab="daily"><span class="num">3</span>日々の血糖・翌日量</div>
+    <div class="tab" data-tab="taper"><span class="num">4</span>減量・内服化</div>
+  </div>
+
+  <details style="margin-bottom:14px">
+    <summary>用語の対応（略語の日本語）</summary>
+    <div class="small" style="padding:6px 2px;line-height:1.9">
+      <b>TDD</b>（Total Daily Dose）＝1日総インスリン量　/
+      <b>NPH</b>＝中間型インスリン（作用ピーク約4〜6時間。朝1回PSLの午後〜夕ピークに合わせる）　/
+      <b>基礎（Basal）</b>＝持効型インスリン（glargine等、1日を通して効く土台）　/
+      <b>毎食前定時（Prandial/Bolus）</b>＝食事に合わせる超速効型（lispro/aspart等）　/
+      <b>BBI（Basal-Bolus）</b>＝強化インスリン療法〔基礎（持効型）＋毎食前 超速効型〕　/
+      <b>AC/HS</b>＝各食前・就寝前　/　<b>PSL</b>＝プレドニゾロン
+      <br><span style="color:var(--muted)">※本ツールはパターン調整（前日プロファイル→当日の定時量）を扱います。スライディング（補正）は別管理です。</span>
+    </div>
+  </details>
+
+  <!-- ===== STEP 1 ===== -->
+  <section class="panel active" id="reg">
+    <div class="card" style="padding:14px 16px">
+      <h2 style="font-size:15px">保存済みの患者</h2>
+      <p class="sub">データは<b>端末内のみ</b>に保存（外部送信なし）。氏名は避け、ID/イニシャルでの登録を推奨。端末間の移行はエクスポート→iCloud→インポートで。</p>
+      <div class="pbar">
+        <select id="patientSelect" onchange="onSelectPatient(this.value)"></select>
+        <button class="btn ghost small" style="padding:7px 12px" onclick="newPatient()">＋新規</button>
+        <button class="btn ghost small" style="padding:7px 12px" onclick="deleteActivePatient()">削除</button>
+        <button class="btn ghost small" style="padding:7px 12px" onclick="exportJSON()">エクスポート</button>
+        <label class="btn ghost small" style="padding:7px 12px;cursor:pointer;display:inline-block">インポート<input type="file" accept="application/json,.json" style="display:none" onchange="importJSON(this.files[0]);this.value=''"></label>
+      </div>
+      <div id="saveStatus" class="muted" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h2>1. 患者情報の登録</h2>
+      <p class="sub">初期レジメンの分岐と開始量はこの情報から自動計算されます。<button class="btn ghost small" style="padding:5px 12px" onclick="loadPreset()">資料の症例をプリセット（eGFR30 / 40kg / 非透析）</button></p>
+      <div class="grid">
+        <label class="fld">患者ID / イニシャル（任意）
+          <input id="pid" type="text" placeholder="端末内のみ・任意">
+        </label>
+        <label class="fld">体重 (kg)
+          <input id="weight" type="number" min="0" step="0.5" placeholder="例: 40">
+        </label>
+        <label class="fld">eGFR (mL/min/1.73m²)
+          <input id="egfr" type="number" min="0" step="1" placeholder="例: 30">
+        </label>
+        <label class="fld">透析
+          <select id="dialysis"><option value="no">なし</option><option value="yes">あり（HD/ESRD）</option></select>
+        </label>
+        <label class="fld">年齢 (歳・任意)
+          <input id="age" type="number" min="0" step="1" placeholder="例: 72">
+        </label>
+        <label class="fld">既存糖尿病
+          <select id="dm"><option value="t2">2型DM</option><option value="none">なし（新規高血糖）</option><option value="t1">1型DM</option></select>
+        </label>
+      </div>
+
+      <h3>食事摂取状況</h3>
+      <div class="chips" id="dietChips">
+        <span class="chip on" data-v="regular">通常食（3食安定 &gt;75%）</span>
+        <span class="chip" data-v="poor">摂取不良（&lt;50%）</span>
+        <span class="chip" data-v="npo">NPO / 絶食</span>
+      </div>
+
+      <h3>ステロイド</h3>
+      <div class="grid">
+        <label class="fld">種類
+          <select id="steroid">
+            <option value="psl">プレドニゾロン (PSL)</option>
+            <option value="mpsl">メチルプレドニゾロン</option>
+            <option value="dex">デキサメタゾン（※v1は参考表示）</option>
+            <option value="hc">ヒドロコルチゾン</option>
+          </select>
+        </label>
+        <label class="fld">用量 (mg/日)
+          <input id="stDose" type="number" min="0" step="1" placeholder="例: 30">
+        </label>
+        <label class="fld">投与回数・時刻
+          <select id="stTiming">
+            <option value="am1">朝1回</option>
+            <option value="split">分割（朝・夕など）</option>
+            <option value="other">その他</option>
+          </select>
+        </label>
+      </div>
+      <p class="muted">朝1回PSLは<b>午後〜夕方に高血糖がピーク</b>になりやすく、NPHを同時投与してピークを合わせる運用が中心です。</p>
+
+      <h3>経口血糖降下薬（現在）</h3>
+      <div class="chips" id="oralChips">
+        <span class="chip" data-v="metformin">メトホルミン</span>
+        <span class="chip" data-v="su">SU / グリニド</span>
+        <span class="chip" data-v="sglt2">SGLT2i</span>
+        <span class="chip" data-v="dpp4">DPP-4i</span>
+        <span class="chip" data-v="glp1">GLP-1RA</span>
+        <span class="chip" data-v="tzd">TZD</span>
+        <span class="chip" data-v="none">なし</span>
+      </div>
+
+      <h3>直近24hの血糖プロファイル (mg/dL・任意)</h3>
+      <p class="sub">重症度判定と開始量の参考に使います（HI と入力可）。</p>
+      <div class="glucinputs">
+        <label>FBS/空腹<input id="g_fbs" type="text" placeholder="例:120"></label>
+        <label>昼前<input id="g_pre_l" type="text" placeholder="例:200"></label>
+        <label>夕前<input id="g_pre_d" type="text" placeholder="例:350"></label>
+        <label>就寝前<input id="g_hs" type="text" placeholder="例:500"></label>
+      </div>
+
+      <div class="row-btns" style="margin-top:18px">
+        <button class="btn" onclick="saveReg()">登録してレジメン提案へ →</button>
+        <button class="btn ghost" onclick="newPatient()">クリア（新規）</button>
+      </div>
+      <div id="regEcho"></div>
+    </div>
+  </section>
+
+  <!-- ===== STEP 2 ===== -->
+  <section class="panel" id="init">
+    <div class="card">
+      <h2>2. 初期レジメン提案</h2>
+      <p class="sub">食事 × 重症度で初期レジメンを分岐し、開始量・配分・補正スケールを提案します。</p>
+      <div id="initBody"><p class="muted">先に「患者登録」を入力してください。</p></div>
+    </div>
+  </section>
+
+  <!-- ===== STEP 3 ===== -->
+  <section class="panel" id="daily">
+    <div class="card">
+      <h2>3. 日々の血糖入力 → 翌日量の決定</h2>
+      <p class="sub">本日のAC/HS血糖と本日使った補正量を入力すると、翌日の定時量とエスカレーションを計算します。</p>
+      <div id="dailyBody"><p class="muted">先に初期レジメンを確定してください。</p></div>
+    </div>
+  </section>
+
+  <!-- ===== STEP 4 ===== -->
+  <section class="panel" id="taper">
+    <div class="card">
+      <h2>4. ステロイド減量・内服化の支援</h2>
+      <p class="sub">ステロイド減量と<b>同日に</b>インスリンを見直します。減量後48時間は低血糖を厳重監視。</p>
+      <div id="taperBody"><p class="muted">先に初期レジメンを確定してください。</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* =========================================================
+   状態
+========================================================= */
+const S = { patient:null, regimen:null, history:[], override:null, activeKey:null,
+  // 日々調整の既定ルール（画面で編集可）
+  rules:{
+    confirm2day:null,  // null=レジメン別の既定に従う / true=2日連続 / false=1日。減量は常に即時
+    // 調整スケール：血糖(mg/dL) → 該当インスリンの調整単位（2U刻み・編集可）
+    // [上限未満, 調整単位] の昇順。例: g<80→-4, 80≤g<120→-2 ...
+    scale:[[80,-4],[120,-2],[180,0],[250,2],[350,4],[450,6],[9999,8]]
+  }
+};
+
+/* ---- タブ ---- */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('active');
+  });
+});
+function goTab(id){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===id));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active',x.id===id));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---- チップ選択 ---- */
+document.getElementById('dietChips').addEventListener('click',e=>{
+  if(!e.target.classList.contains('chip'))return;
+  document.querySelectorAll('#dietChips .chip').forEach(c=>c.classList.remove('on'));
+  e.target.classList.add('on');
+});
+document.getElementById('oralChips').addEventListener('click',e=>{
+  if(!e.target.classList.contains('chip'))return;
+  const v=e.target.dataset.v;
+  if(v==='none'){document.querySelectorAll('#oralChips .chip').forEach(c=>c.classList.remove('on'));}
+  else{document.querySelector('#oralChips .chip[data-v="none"]').classList.remove('on');}
+  e.target.classList.toggle('on');
+});
+
+/* ---- 数値ユーティリティ ---- */
+function parseG(v){ if(v==null)return null; v=(''+v).trim().toUpperCase();
+  if(v==='HI'||v==='H')return 999; if(v==='LO'||v==='L')return 1;
+  const n=parseFloat(v); return isNaN(n)?null:n; }
+function rnd(x){ return Math.round(x); }
+function fmtG(x){ return x==null?'-':(x>=999?'HI':x+' mg/dL'); }
+
+/* =========================================================
+   プリセット
+========================================================= */
+function loadPreset(){
+  document.getElementById('pid').value='症例（資料）';
+  document.getElementById('weight').value=40;
+  document.getElementById('egfr').value=30;
+  document.getElementById('dialysis').value='no';
+  document.getElementById('age').value='';
+  document.getElementById('dm').value='t2';
+  setChip('dietChips','regular');
+  document.getElementById('steroid').value='psl';
+  document.getElementById('stDose').value=30;
+  document.getElementById('stTiming').value='am1';
+  document.querySelectorAll('#oralChips .chip').forEach(c=>c.classList.remove('on'));
+  document.querySelector('#oralChips .chip[data-v="dpp4"]').classList.add('on');
+  document.getElementById('g_fbs').value=120;
+  document.getElementById('g_pre_l').value=200;
+  document.getElementById('g_pre_d').value=350;
+  document.getElementById('g_hs').value=500;
+}
+function setChip(group,v){
+  document.querySelectorAll('#'+group+' .chip').forEach(c=>c.classList.toggle('on',c.dataset.v===v));
+}
+
+/* =========================================================
+   STEP1 → 登録
+========================================================= */
+function saveReg(){
+  const weight=parseFloat(document.getElementById('weight').value);
+  const egfr=parseFloat(document.getElementById('egfr').value);
+  if(!weight){alert('体重を入力してください。');return;}
+  const diet=(document.querySelector('#dietChips .chip.on')||{dataset:{v:'regular'}}).dataset.v;
+  const orals=[...document.querySelectorAll('#oralChips .chip.on')].map(c=>c.dataset.v);
+  const prof={fbs:parseG(document.getElementById('g_fbs').value),
+              preL:parseG(document.getElementById('g_pre_l').value),
+              preD:parseG(document.getElementById('g_pre_d').value),
+              hs:parseG(document.getElementById('g_hs').value)};
+  S.patient={
+    id:document.getElementById('pid').value||'(未設定)',
+    weight, egfr: isNaN(egfr)?null:egfr,
+    dialysis:document.getElementById('dialysis').value==='yes',
+    age:parseFloat(document.getElementById('age').value)||null,
+    dm:document.getElementById('dm').value,
+    diet,
+    steroid:document.getElementById('steroid').value,
+    stDose:parseFloat(document.getElementById('stDose').value)||null,
+    stTiming:document.getElementById('stTiming').value,
+    orals, prof
+  };
+  S.regimen=null; S.override=null;   // 提案を再計算（血糖ログ S.history は保持）
+  autosave();
+  document.getElementById('regEcho').innerHTML=
+    '<div class="alert ok">登録・保存しました。「初期レジメン提案」タブで内容を確認してください。</div>';
+  renderInit();
+  renderDaily();
+  renderTaper();
+  goTab('init');
+}
+function clearAll(){
+  document.querySelectorAll('#reg input').forEach(i=>i.value='');
+  setChip('dietChips','regular');
+  document.querySelectorAll('#oralChips .chip').forEach(c=>c.classList.remove('on'));
+  S.patient=null;S.regimen=null;S.history=[];
+  document.getElementById('regEcho').innerHTML='';
+}
+
+/* =========================================================
+   臨床エンジン
+========================================================= */
+// 低リスク（=低用量開始）判定
+function lowStart(p){
+  return (p.egfr!=null && p.egfr<60) || p.dialysis || (p.age && p.age>=70) || p.diet!=='regular';
+}
+// 重症度（直近プロファイルの最高値）
+function maxG(p){
+  const v=[p.prof.fbs,p.prof.preL,p.prof.preD,p.prof.hs].filter(x=>x!=null);
+  return v.length?Math.max(...v):null;
+}
+function severity(p){
+  const m=maxG(p);
+  if(m==null)return 'unknown';
+  if(m>=350)return 'severe';      // ≥350/HI
+  if(m>=270)return 'high';        // ≥270持続域
+  return 'moderate';
+}
+// 補正スケール選択（推定TDDで Low/Med/High）
+function scaleTier(tdd){ return tdd<40?'Low':(tdd<=80?'Medium':'High'); }
+// 補正スケール定義（Low=資料準拠 / Med・High=院内設定要・既定値）
+const SCALES={
+  Low:[[150,0],[200,1],[250,2],[300,3],[350,4],[400,5],[450,6],[9999,7]],
+  Medium:[[150,0],[200,2],[250,3],[300,4],[350,6],[400,8],[450,10],[9999,12]],
+  High:[[150,0],[200,3],[250,5],[300,7],[350,9],[400,11],[450,13],[9999,16]]
+};
+function correctionDose(g,tier){
+  if(g==null)return 0;
+  for(const [hi,u] of SCALES[tier]){ if(g<hi)return u; }
+  return SCALES[tier][SCALES[tier].length-1][1];
+}
+// 調整スケール：血糖値 → 該当インスリンの調整単位（負=減量）
+function adjFromScale(g){
+  if(g==null)return 0;
+  for(const [hi,d] of S.rules.scale){ if(g<hi)return d; }
+  return S.rules.scale[S.rules.scale.length-1][1];
+}
+
+// 増量条件のレジメン別デフォルト（BBIは1日で増量＝false、NPH/basalは2日確認＝true）
+function confirmDefaultFor(type){ return type==='BBI' ? false : true; }
+// 実効値：null（未設定）なら現在レジメンの既定、明示 true/false ならそれを優先
+function effConfirm2day(){
+  const v = S.rules ? S.rules.confirm2day : null;
+  if(v===true || v===false) return v;
+  return confirmDefaultFor(S.regimen ? S.regimen.type : 'NPH');
+}
+
+// 初期レジメン計算（override：'NPH'/'BBI'/'basal' を指定すると手動切替）
+function computeRegimen(p, override){
+  const sev=severity(p);
+  const low=lowStart(p);
+  let type, factor, note=[];
+  // 分岐：食事を最優先。摂取不良→basal、重症域→BBI推奨、それ以外→NPHベース
+  const renalLow = p.dialysis || (p.egfr!=null && p.egfr<=30);
+  if(p.diet==='npo' || p.diet==='poor'){
+    type='basal'; factor= low?0.15:0.2;
+    note.push('摂取不良/NPOのため食前定時は原則保留し、基礎（持効型）＋補正で保守的に開始。');
+  } else if(sev==='severe' && !renalLow){
+    type='BBI'; factor= low?0.3:0.4;
+    note.push('直近血糖が重症域（≥350 mg/dL／メーター"HI"相当）のため、強化インスリン療法＝Basal-Bolus〔基礎（持効型）＋毎食前 超速効型〕での開始を推奨。');
+    note.push('保守的に低用量から始めたい場合は「NPHベースで見る」に切替できます。');
+  } else {
+    type='NPH'; factor= low?0.15:0.25;
+    note.push('通常食・朝1回PSLの午後〜夕ピークに合わせ、NPH〔中間型〕朝（PSL同時）＋補正を第一選択。');
+    if(sev==='severe' && renalLow){
+      note.push('透析/高度腎障害（eGFR≤30）では低血糖回避を最優先するため、重症域でもまずNPHベースを低用量から開始し、毎日（場合により当日）増量で追いかける運用。強化インスリン（Basal-Bolus）が必要な場合は「強化インスリンで見る」へ切替できます。');
+    } else if(sev==='high'){
+      note.push('≥270 mg/dL が持続する場合は内分泌相談＋強化（強化インスリンへの切替）も検討。');
+    }
+  }
+  // 手動切替
+  if(override && override!==type){
+    type=override;
+    if(type==='NPH'){ factor=low?0.15:0.25; note.unshift('【手動切替】NPH〔中間型〕ベース＋補正・低用量開始の保守的レジメン。'); }
+    else if(type==='BBI'){ factor=low?0.3:0.4; note.unshift('【手動切替】Basal-Bolus〔基礎（持効型）＋毎食前 超速効型〕での開始。'); }
+    else if(type==='basal'){ factor=low?0.15:0.2; note.unshift('【手動切替】基礎（持効型）＋補正のみ。'); }
+  }
+  if(low) note.push('低用量開始の根拠：'+[p.egfr!=null&&p.egfr<60?'eGFR<60':null,p.dialysis?'透析':null,(p.age&&p.age>=70)?'高齢':null,p.diet!=='regular'?'摂取不良':null].filter(Boolean).join(' / '));
+
+  const tdd=Math.max(2,rnd(p.weight*factor));
+  // NPHは重症/持続で各食定時を付与、中等度はNPH＋補正のみで開始（資料：必要時に定時追加）
+  const usePrandial=(type==='NPH') ? (sev==='severe'||sev==='high') : (type==='BBI');
+  let nph=0,basal=0,prandial=0,prandialEach=0,bB=0,bL=0,bD=0;
+  if(type==='NPH'){
+    nph=rnd(tdd*0.5);
+    prandial=usePrandial?Math.max(0,tdd-nph):0;
+    prandialEach=usePrandial?Math.max(1,rnd(prandial/3)):0;
+    if(!usePrandial) note.push('現状はNPH＋補正で開始し、補正が毎食必要になれば昼・夕に超速効型 定時を追加。');
+  } else if(type==='basal'){
+    basal=rnd(tdd*0.5);
+  } else { // BBI
+    basal=Math.floor(tdd*0.5);   // 端数はボーラス側へ（PSLで昼夕が上がるため）
+    prandial=tdd-basal;
+    prandialEach=Math.max(1,rnd(prandial/3));
+    // 朝1回PSLは午後〜夕に高くなるため、ボーラスは昼・夕を厚めに配分
+    bB=Math.max(1,rnd(prandial*0.25));
+    bD=Math.max(1,rnd(prandial*0.375));
+    bL=Math.max(1,prandial-bB-bD);
+    note.push('腎機能低下のため0.3 U/kg/日を上限に低用量開始。低血糖が出たら即減量しつつ、毎日10–20%（主にボーラス）増量で追いかけ、補正を必ず併用。');
+  }
+  const tier=scaleTier(tdd);
+  return {type,factor,tdd,nph,basal,prandial,prandialEach,bB,bL,bD,tier,sev,note};
+}
+
+/* =========================================================
+   STEP2 表示
+========================================================= */
+function renderInit(){
+  const box=document.getElementById('initBody');
+  if(!S.patient){box.innerHTML='<p class="muted">先に「患者登録」を入力してください。</p>';return;}
+  const p=S.patient; const proposal=computeRegimen(p, S.override);
+  // 確定／保存済みレジメンは上書きしない（日々の調整量を保持）
+  if(!(S.regimen && S.regimen.locked)){
+    S.regimen=Object.assign({},proposal,{
+      cur:{ nph:proposal.nph, basal:proposal.basal, prandialEach:proposal.prandialEach, bB:proposal.bB, bL:proposal.bL, bD:proposal.bD, tier:proposal.tier },
+      locked:false
+    });
+  }
+  // 表示用 r：確定済みなら「現在量」、未確定なら「提案」
+  let r;
+  if(S.regimen.locked){
+    const c=S.regimen.cur;
+    r=Object.assign({},S.regimen,{nph:c.nph,basal:c.basal,prandialEach:c.prandialEach,bB:c.bB,bL:c.bL,bD:c.bD,tier:c.tier,
+      note:['保存／確定済みのレジメンです（下は現在量）。別レジメンに切り替えると再計算します。']});
+  } else { r=proposal; }
+  const sevLabel={severe:'重症（≥350/HI 域）',high:'高値（≥270 持続域）',moderate:'中等度',unknown:'血糖プロファイル未入力'}[r.sev];
+  let typeBadge = r.type==='NPH'?'<span class="badge nph">NPH〔中間型〕ベース＋補正</span>'
+                 :r.type==='BBI'?'<span class="badge bbi">強化インスリン（Basal-Bolus）</span>'
+                 :'<span class="badge basal">基礎（持効型）＋補正（保守的）</span>';
+  // 推奨レジメンとの差分判定（手動切替表示用）
+  const recommended=computeRegimen(p, null).type;
+  let switchBtns='';
+  if(r.type!=='BBI') switchBtns+=`<button class="btn ghost small" style="padding:6px 12px" onclick="setOverride('BBI')">強化インスリン（Basal-Bolus）で見る</button>`;
+  if(r.type!=='NPH') switchBtns+=`<button class="btn ghost small" style="padding:6px 12px" onclick="setOverride('NPH')">NPH〔中間型〕ベースで見る</button>`;
+  if(S.override) switchBtns+=`<button class="btn ghost small" style="padding:6px 12px" onclick="setOverride(null)">↺ 推奨（${({NPH:'NPHベース',BBI:'強化インスリン',basal:'基礎＋補正'})[recommended]}）に戻す</button>`;
+
+  let doseHtml='';
+  if(r.type==='NPH'){
+    doseHtml=`
+      <div class="doseline"><span>NPH〔中間型〕（朝・PSLと同時）</span><span><span class="v">${r.nph}</span><span class="u">単位</span></span></div>
+      <div class="doseline"><span>毎食前 定時〔超速効型〕<span class="pill">通常食</span></span><span><span class="v">${r.prandialEach}</span><span class="u">単位 ×3</span></span></div>`;
+  } else if(r.type==='basal'){
+    doseHtml=`
+      <div class="doseline"><span>基礎〔持効型・眠前〕</span><span><span class="v">${r.basal}</span><span class="u">単位</span></span></div>
+      <div class="doseline"><span>毎食前 定時</span><span><span class="u">原則保留（摂取安定で拡張）</span></span></div>`;
+  } else {
+    doseHtml=`
+      <div class="doseline"><span>基礎〔持効型・眠前〕</span><span><span class="v">${r.basal}</span><span class="u">単位</span></span></div>
+      <div class="doseline"><span>ボーラス〔超速効型〕 朝 / 昼 / 夕<span class="pill">昼夕厚め</span></span><span><span class="v">${r.bB} / ${r.bL} / ${r.bD}</span><span class="u">単位</span></span></div>`;
+  }
+
+  box.innerHTML=`
+    <div class="alert info">
+      <b>患者サマリ</b>
+      ${p.weight}kg / eGFR ${p.egfr??'?'}${p.dialysis?'・透析':''} / ${({regular:'通常食',poor:'摂取不良',npo:'NPO'})[p.diet]}
+      / ${({psl:'PSL',mpsl:'mPSL',dex:'DEX',hc:'HC'})[p.steroid]} ${p.stDose?p.stDose+'mg':''} ${({am1:'朝1回',split:'分割',other:'その他'})[p.stTiming]}
+      / 重症度: ${sevLabel}
+    </div>
+
+    <h3>提案レジメン &nbsp; ${typeBadge}</h3>
+    <p class="muted" style="margin-top:0">${r.note.map(n=>'・'+n).join('<br>')}</p>
+    <div class="row-btns" style="margin:4px 0 10px">${switchBtns}</div>
+
+    <div class="result">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <strong>開始 TDD〔1日総インスリン量〕</strong>
+        <span><span class="v" style="font-size:20px;color:var(--brand-d);font-weight:700">${r.tdd}</span><span class="u"> 単位/日（≒${(r.tdd/p.weight).toFixed(2)} 単位/kg・係数${r.factor}）</span></span>
+      </div>
+      ${doseHtml}
+    </div>
+
+    ${escalationAlert(p)}
+
+    <details>
+      <summary>開始量の計算根拠</summary>
+      <div class="small" style="padding:6px 2px">
+        ・係数：NPH/Basal系 0.15（リスクあり）〜0.25、BBI 0.3（リスクあり）〜0.4 U/kg<br>
+        ・TDD = 体重 × 係数 = ${p.weight} × ${r.factor} = <b>${r.tdd} 単位/日</b><br>
+        ・NPH/Basal = TDD × 0.5（基礎相当）、残りを毎食前 定時へ<br>
+        ・BBI のボーラスは朝1回PSLに合わせ昼・夕厚め（朝25% / 昼37.5% / 夕37.5%）<br>
+        <span class="muted">※スライディング（補正）は本ツールでは扱いません（別管理）。日々の調整は前日プロファイルから定時量を直接動かします。</span>
+      </div>
+    </details>
+
+    <h3>実際の開始量（編集可）</h3>
+    <p class="sub">上の提案値を初期表示しています。<b>実際に開始する量に書き換えてから</b>「確定」してください。</p>
+    <div class="grid">${editFields(r)}</div>
+
+    <div class="row-btns" style="margin-top:16px">
+      <button class="btn" onclick="confirmRegimen()">この開始量で確定し、日々調整へ →</button>
+      <button class="btn ghost" onclick="goTab('reg')">← 登録に戻る</button>
+    </div>`;
+}
+
+function editFields(r){
+  let f='';
+  if(r.type==='NPH'){
+    f=`<label class="fld">NPH〔中間型〕朝 (単位)<input id="e_nph" type="number" min="0" step="1" value="${r.nph}"></label>
+       <label class="fld">各食前 定時 (単位 ×3)<input id="e_pe" type="number" min="0" step="1" value="${r.prandialEach}"></label>`;
+  } else if(r.type==='BBI'){
+    f=`<label class="fld">基礎〔持効型・眠前〕 (単位)<input id="e_basal" type="number" min="0" step="1" value="${r.basal}"></label>
+       <label class="fld">ボーラス 朝 (単位)<input id="e_bB" type="number" min="0" step="1" value="${r.bB}"></label>
+       <label class="fld">ボーラス 昼 (単位)<input id="e_bL" type="number" min="0" step="1" value="${r.bL}"></label>
+       <label class="fld">ボーラス 夕 (単位)<input id="e_bD" type="number" min="0" step="1" value="${r.bD}"></label>`;
+  } else {
+    f=`<label class="fld">基礎〔持効型・眠前〕 (単位)<input id="e_basal" type="number" min="0" step="1" value="${r.basal}"></label>`;
+  }
+  return f;
+}
+
+function escalationAlert(p){
+  const sev=severity(p); const m=maxG(p);
+  if(sev==='severe'){
+    return `<div class="alert danger"><b>🚨 エスカレーション基準（重症高血糖）</b>
+      直近最高 ${m>=999?'HI':m+' mg/dL'}。≥350 mg/dL（≈20 mmol/L）／メーター"HI" は<b>重症高血糖（HHS含む）</b>として、
+      ① 血中ケトン（βヒドロキシ酪酸）・電解質で DKA/HHS鑑別、② 医師コール、③ レジメン強化／IVインスリン検討。
+      下の「日々調整」タブから <b>BBIへ移行してコントロールを継続</b>できます。</div>`;
+  }
+  if(sev==='high'){
+    return `<div class="alert warn"><b>⚠ 内分泌コンサルト推奨域</b>
+      直近最高 ${m} mg/dL。≥270 mg/dL（≈15 mmol/L）が持続する場合は内分泌チーム相談＋レジメン強化を検討。
+      必要なら「日々調整」タブで BBI 移行が可能です。</div>`;
+  }
+  return '';
+}
+
+function scaleTable(tier){
+  const rows=SCALES[tier];
+  let html='<table><tr><th>血糖 (mg/dL)</th><th>超速効型 追加 (単位)</th></tr>';
+  const labels=['<150','150–199','200–249','250–299','300–349','350–399','400–449','≥450'];
+  rows.forEach((r,i)=>{
+    const extra = i===rows.length-1?' ＋医師コール（ケトン/脱水/感染評価）':'';
+    html+=`<tr><td>${labels[i]}</td><td><input type="number" value="${r[1]}" min="0" style="width:70px"
+      onchange="SCALES['${tier}'][${i}][1]=parseInt(this.value)||0">${extra}</td></tr>`;
+  });
+  html+='</table><p class="ref">補正開始閾値は 140–150 mg/dL（≥150で+1）。補正のみの長期運用は避け、必ず「基礎＋補正」を基本に。</p>';
+  return html;
+}
+
+function setOverride(t){ S.override=t; S.regimen=null; renderInit(); }
+
+function confirmRegimen(){
+  if(!S.regimen){alert('レジメンが未計算です。');return;}
+  const t=S.regimen.type, cur=S.regimen.cur;
+  const gv=id=>{const el=document.getElementById(id);return el?Math.max(0,parseFloat(el.value)||0):0;};
+  if(t==='NPH'){ cur.nph=gv('e_nph'); cur.prandialEach=gv('e_pe'); }
+  else if(t==='BBI'){ cur.basal=gv('e_basal'); cur.bB=gv('e_bB'); cur.bL=gv('e_bL'); cur.bD=gv('e_bD'); }
+  else { cur.basal=gv('e_basal'); }
+  S.regimen.locked=true;   // 確定：以後 renderInit で上書きしない
+  // 実効TDDを更新表示用に再計算
+  S.regimen.tdd=(cur.nph||0)+(cur.basal||0)+(cur.prandialEach||0)*3+(cur.bB||0)+(cur.bL||0)+(cur.bD||0);
+  autosave();
+  renderDaily(); renderTaper();
+  goTab('daily');
+}
+
+/* =========================================================
+   STEP3 日々調整 ＋ BBI移行
+========================================================= */
+function renderDaily(){
+  const box=document.getElementById('dailyBody');
+  if(!S.regimen){box.innerHTML='<p class="muted">先に初期レジメンを確定してください。</p>';return;}
+  const r=S.regimen, c=r.cur;
+  const isNPH=(r.type==='NPH');
+  const curList = isNPH
+    ? `NPH〔中間型・朝〕 <b>${c.nph}</b>単位 ／ 各食前 <b>${c.prandialEach}</b>単位`
+    : (r.type==='basal'
+       ? `基礎〔持効型・眠前〕 <b>${c.basal}</b>単位`
+       : `基礎〔持効型・眠前〕 <b>${c.basal}</b>単位 ／ ボーラス 朝<b>${c.bB}</b>・昼<b>${c.bL}</b>・夕<b>${c.bD}</b>単位`);
+
+  box.innerHTML=`
+    <div class="alert info"><b>現在の定時量　${r.type==='NPH'?'<span class="badge nph">NPH〔中間型〕</span>':r.type==='BBI'?'<span class="badge bbi">強化インスリン</span>':'<span class="badge basal">基礎</span>'}</b>${curList}</div>
+
+    <p class="muted" style="margin:0 0 6px">毎朝、<b>前日</b>の血糖プロファイルを入力 → <b>本日</b>の定時量を提案します（スライディングは本ツールでは扱いません）。</p>
+    <h3>前日の血糖プロファイル（AC/HS, mg/dL）</h3>
+    <div class="glucinputs">
+      <label>朝食前/FBS<input id="d_fbs" type="text" placeholder="HI可"></label>
+      <label>昼食前<input id="d_preL" type="text"></label>
+      <label>夕食前<input id="d_preD" type="text"></label>
+      <label>就寝前<input id="d_hs" type="text"></label>
+      <label>夜間/早朝 低血糖<select id="d_hypo"><option value="no">なし</option><option value="yes">あり(&lt;70/症状)</option></select></label>
+    </div>
+
+    ${ruleSettingsPanel()}
+
+    <div class="row-btns" style="margin-top:14px">
+      <button class="btn" onclick="calcNextDay()">本日の定時量を計算</button>
+    </div>
+    <div id="nextDayOut"></div>
+
+    ${r.history && S.history.length? historyTable():''}
+  `;
+}
+
+function ruleSettingsPanel(){
+  const need2 = effConfirm2day();
+  const defLabel = (S.regimen && S.regimen.type==='BBI') ? '1日（強化インスリンの既定）' : '2日連続（NPH/基礎の既定）';
+  return `<details style="margin-top:12px"><summary>調整スケールの設定（編集可・2U刻み）</summary>
+   <p class="ref" style="margin-top:8px">前日の各時点の血糖値ごとに、対応するインスリンを下表の単位だけ調整します（負=減量）。マッピング＝朝(空腹)→眠前の基礎 / 昼前→朝 / 夕前→昼 / 就寝前→夕。</p>
+   ${adjScaleTable()}
+   <label class="fld" style="max-width:360px;margin-top:6px">増量の条件
+     <select onchange="S.rules.confirm2day=(this.value==='two');autosave()">
+       <option value="two"${need2?' selected':''}>2日連続の高値で増量（1日目は据え置き）</option>
+       <option value="one"${!need2?' selected':''}>1日でも高値なら増量</option>
+     </select>
+     <span class="hint">減量（低値）は条件に関わらず常に1日で即時。レジメン別の既定：BBI=1日 / NPH=2日。現在の既定：${defLabel}（変更すると以後この患者で固定）。</span>
+   </label>
+   </details>`;
+}
+
+function adjScaleTable(){
+  const sc=S.rules.scale;
+  let h='<div class="scrollx"><table style="max-width:420px"><tr><th>血糖 (mg/dL)</th><th>調整 (単位)</th></tr>';
+  for(let i=0;i<sc.length;i++){
+    const lo = i===0?'&lt;'+sc[0][0] : sc[i-1][0]+'–'+(sc[i][0]-1);
+    const label = i===sc.length-1 ? '≥'+sc[i-1][0] : lo;
+    h+=`<tr><td>${label}</td><td><input type="number" step="2" value="${sc[i][1]}" style="width:80px"
+        onchange="S.rules.scale[${i}][1]=parseInt(this.value)||0;autosave()"></td></tr>`;
+  }
+  h+='</table></div>';
+  return h;
+}
+
+function calcNextDay(){
+  const r=S.regimen, c=r.cur;
+  const g={fbs:parseG(val('d_fbs')),preL:parseG(val('d_preL')),preD:parseG(val('d_preD')),hs:parseG(val('d_hs'))};
+  const hypo=val('d_hypo')==='yes';
+  const arr=[g.fbs,g.preL,g.preD,g.hs].filter(x=>x!=null);
+  const mx=arr.length?Math.max(...arr):null;
+  const need2 = effConfirm2day();
+
+  let actions=[]; let next=JSON.parse(JSON.stringify(c)); let alerts=[];
+  const prev = S.history.length? S.history[S.history.length-1].g : null;
+  // 2日確認：前日の同じ時間帯も「増量域(調整単位>0)」だったか。前日が無ければ1日目扱い
+  const confHigh=(prevVal)=> !need2 || (prevVal!=null && adjFromScale(prevVal)>0);
+  const note1st='（増量は1日目は据え置き／翌日も高値で実施）';
+
+  // --- エスカレーション判定（安全アラートのみ） ---
+  if(mx!=null && mx>=360){
+    alerts.push(`<div class="alert danger"><b>🚨 ≥360 mg/dL${mx>=999?'（HI）':''} 検出（≈20 mmol/L）</b>
+      重症高血糖。ケトン・電解質で DKA/HHS鑑別、医師コール。
+      ${r.type!=='BBI'?'<b>強化インスリン（Basal-Bolus）への移行を強く検討。</b> 下のボタンで移行できます。':'状態によりIVインスリン／より集中的管理も検討。'}</div>`);
+  } else if(mx!=null && mx>=270){
+    alerts.push(`<div class="alert warn"><b>⚠ ≥270 mg/dL 持続域（≈15 mmol/L）</b>
+      内分泌コンサルト＋レジメン強化を検討。${r.type!=='BBI'?'NPH単独で夕方〜就寝前 >180が持続するなら 強化インスリンへの移行を検討。':''}</div>`);
+  }
+
+  // 前日の時点 → 調整するインスリン（②のマッピング）。増量は2日確認、減量は即時。
+  function applyMap(gKey,doseKey,readLabel,doseLabel){
+    const gv=g[gKey]; if(gv==null) return;
+    const d=adjFromScale(gv);
+    if(d>0){
+      if(confHigh(prev?prev[gKey]:null)){ next[doseKey]=Math.max(0,(next[doseKey]||0)+d); actions.push(`前日 ${readLabel} ${fmtG(gv)} → ${doseLabel} +${d}単位（${c[doseKey]}→${next[doseKey]}）。`);}
+      else actions.push(`前日 ${readLabel} 高値 → ${doseLabel} 据え置き${note1st}。`);
+    } else if(d<0){
+      next[doseKey]=Math.max(0,(next[doseKey]||0)+d); actions.push(`前日 ${readLabel} ${fmtG(gv)} → ${doseLabel} ${d}単位（即時減量。${c[doseKey]}→${next[doseKey]}）。`);
+    }
+  }
+
+  if(r.type==='BBI'){
+    /* ===== 強化インスリン（BBI）：前日プロファイル → 本日の定時量（②のマッピング） ===== */
+    applyMap('fbs','basal','朝（空腹）','基礎（眠前）');
+    applyMap('preL','bB','昼前','朝ボーラス');
+    applyMap('preD','bL','夕前','昼ボーラス');
+    applyMap('hs','bD','就寝前','夕ボーラス');
+    if(hypo){ next.basal=Math.max(0,next.basal-4); actions.push('夜間/早朝 低血糖（症状）→ 基礎（眠前）−4単位（即時）。'); }
+    if(S.patient.dialysis && (hypo||(g.fbs!=null&&g.fbs<80))) actions.push('透析患者では低血糖回避を最優先。');
+  } else if(r.type==='basal'){
+    /* ===== basal（眠前）＋ 摂取安定で定時拡張 ===== */
+    applyMap('fbs','basal','朝（空腹）','基礎（眠前）');
+    if(hypo){ next.basal=Math.max(0,next.basal-4); actions.push('低血糖 → 基礎（眠前）−4単位（即時）。'); }
+  } else {
+    /* ===== NPHベース（NPHは朝・PSL同時） ===== */
+    // NPHは午後〜夕に効くため、前日の夕前/就寝前で調整。空腹低値ではNPHを減らす。
+    const eveVal=[g.preD,g.hs].filter(x=>x!=null);
+    const eveMax=eveVal.length?Math.max(...eveVal):null;
+    if(eveMax!=null){
+      const d=adjFromScale(eveMax);
+      const prevEve=prev?Math.max(...[prev.preD,prev.hs].filter(x=>x!=null).concat([-1])):null;
+      if(d>0){ if(confHigh(prevEve)){ next.nph=c.nph+d; actions.push(`前日 夕〜就寝前 ${fmtG(eveMax)} → NPH朝 +${d}単位（${c.nph}→${next.nph}）。`);} else actions.push(`前日 夕〜就寝前 高値 → NPH据え置き${note1st}。`);}
+    }
+    // 空腹低値 → NPH減量（即時）
+    if(g.fbs!=null && g.fbs<120){ const d=adjFromScale(g.fbs); if(d<0){ next.nph=Math.max(0,next.nph+d); actions.push(`前日 朝（空腹）${fmtG(g.fbs)} → NPH朝 ${d}単位（即時減量）。`);} }
+    if(hypo){ next.nph=Math.max(0,next.nph-4); actions.push('早朝/夜間 低血糖 → NPH朝 −4単位（即時）。'); }
+    // 食後（昼前/夕前）が増量域なら該当食前の定時ボーラスを増量
+    if(c.prandialEach!=null){
+      const dL=adjFromScale(g.preL);
+      if(dL>0 && confHigh(prev?prev.preL:null)){ next.prandialEach=(c.prandialEach||0)+dL; actions.push(`前日 昼前 ${fmtG(g.preL)} → 各食前 定時 +${dL}単位（必要なら強化インスリンへ）。`);}
+    }
+    if(S.patient.dialysis && (hypo||(g.fbs!=null&&g.fbs<80))) actions.push('透析患者では低血糖回避を最優先。');
+  }
+
+  if(actions.length===0) actions.push('明らかな調整トリガーなし。現行量を維持し、AC/HSを継続。');
+
+  // プレビューのみ：ここでは履歴に記録しない（採用時に記録）
+  S._pendingNext = next;
+  S._pendingMeta = { g, hypo, actions: actions.slice() };
+
+  // 出力
+  let out=alerts.join('');
+  out+=`<div class="result"><strong>調整内容</strong><ul class="small" style="margin:8px 0 4px;padding-left:18px">${actions.map(a=>'<li>'+a+'</li>').join('')}</ul>`;
+  out+=`<div style="margin-top:10px"><strong>本日の定時量（提案・編集可）</strong>
+        <p class="sub" style="margin:4px 0 8px">必要なら値を修正してから「採用」してください。空欄は0として扱います。</p>
+        <div class="grid">${nextEditFields(r.type, next)}</div></div>`;
+  out+=`<div class="row-btns" style="margin-top:12px">
+        <button class="btn" onclick="adoptNext()">この定時量で採用（現在量を更新・記録）</button>`;
+  if(r.type!=='BBI'){ out+=`<button class="btn ghost" onclick="switchBBI()">⤴ 強化インスリン（Basal-Bolus）へ移行して継続</button>`; }
+  out+=`</div></div>`;
+  document.getElementById('nextDayOut').innerHTML=out;
+  // 計算段階では保存しない（採用時に autosave）
+}
+
+// 採用前に編集できる入力欄（STEP2 の editFields と同形式・id は n_*）
+function nextEditFields(type, n){
+  if(type==='NPH'){
+    return `<label class="fld">NPH〔中間型・朝〕(単位)<input id="n_nph" type="number" min="0" step="1" value="${n.nph}"></label>
+       <label class="fld">各食前 定時 (単位 ×3)<input id="n_pe" type="number" min="0" step="1" value="${n.prandialEach}"></label>`;
+  } else if(type==='BBI'){
+    return `<label class="fld">基礎〔持効型・眠前〕(単位)<input id="n_basal" type="number" min="0" step="1" value="${n.basal}"></label>
+       <label class="fld">ボーラス 朝 (単位)<input id="n_bB" type="number" min="0" step="1" value="${n.bB}"></label>
+       <label class="fld">ボーラス 昼 (単位)<input id="n_bL" type="number" min="0" step="1" value="${n.bL}"></label>
+       <label class="fld">ボーラス 夕 (単位)<input id="n_bD" type="number" min="0" step="1" value="${n.bD}"></label>`;
+  } else {
+    return `<label class="fld">基礎〔持効型・眠前〕(単位)<input id="n_basal" type="number" min="0" step="1" value="${n.basal}"></label>`;
+  }
+}
+
+function adoptNext(){
+  if(!S._pendingNext){ return; }
+  const r=S.regimen, type=r.type;
+  const before=JSON.parse(JSON.stringify(r.cur));
+  const adopted=JSON.parse(JSON.stringify(r.cur)); // full shape を保持し該当キーのみ上書き
+  const gv=id=>{const el=document.getElementById(id);return el?Math.max(0,parseFloat(el.value)||0):0;};
+  if(type==='NPH'){ adopted.nph=gv('n_nph'); adopted.prandialEach=gv('n_pe'); }
+  else if(type==='BBI'){ adopted.basal=gv('n_basal'); adopted.bB=gv('n_bB'); adopted.bL=gv('n_bL'); adopted.bD=gv('n_bD'); }
+  else { adopted.basal=gv('n_basal'); }
+  r.cur=adopted;
+  // 採用したこのタイミングで履歴に記録（採用値で残す）
+  const meta=S._pendingMeta||{g:{},hypo:false,actions:[]};
+  S.history.push({day:S.history.length+1, g:meta.g, hypo:meta.hypo, from:before, to:adopted, actions:(meta.actions||[]).slice()});
+  S._pendingNext=null; S._pendingMeta=null;
+  autosave();
+  renderDaily();
+  document.getElementById('nextDayOut').innerHTML='<div class="alert ok">本日の定時量を更新し、調整ログに記録しました（保存済み）。</div>';
+}
+
+function switchBBI(){
+  const r=S.regimen, c=r.cur, p=S.patient;
+  // 現行の実効TDDを基準に、腎機能で上限を変えて再構成
+  let effTDD=(c.nph||0)+(c.basal||0)+(c.prandialEach||0)*3+(c.bB||0)+(c.bL||0)+(c.bD||0);
+  const renalLow = p.dialysis || (p.egfr!=null && p.egfr<=30);
+  const capFactor = renalLow?0.3:(lowStart(p)?0.4:0.5);   // 腎不全は0.3 U/kgを上限
+  const capTDD=rnd(p.weight*capFactor);
+  const floorTDD=rnd(p.weight*(renalLow?0.2:0.3));
+  let tdd=Math.max(effTDD, floorTDD);
+  tdd=Math.min(tdd, Math.max(capTDD, effTDD));           // 実効量は下回らない
+  const basal=Math.floor(tdd*0.5);                        // 端数はボーラスへ
+  const prandial=tdd-basal;
+  const bB=Math.max(1,rnd(prandial*0.25));
+  const bD=Math.max(1,rnd(prandial*0.375));
+  const bL=Math.max(1,prandial-bB-bD);
+  S.regimen.type='BBI';
+  S.regimen.tdd=tdd;
+  S.regimen.locked=true;
+  S.regimen.cur={basal,bB,bL,bD,prandialEach:rnd(prandial/3),nph:0};
+  S._pendingNext=null; S._pendingMeta=null;
+  autosave();
+  renderDaily();
+  document.getElementById('nextDayOut').innerHTML=
+    `<div class="alert info"><b>強化インスリン（Basal-Bolus）へ移行しました</b>
+     実効TDD≒${effTDD}U を基に再構成（${renalLow?'腎不全のため0.3 U/kgを上限':'0.3–0.5 U/kg目安'}）。<br>
+     基礎〔持効型・眠前〕<b>${basal}</b>単位／ボーラス〔超速効型〕 朝<b>${bB}</b>・昼<b>${bL}</b>・夕<b>${bD}</b>単位。<br>
+     以後も同じ「前日の血糖プロファイル」入力で調整を継続できます（基礎は前日空腹、ボーラスは「高い時間帯の直前」を血糖値に応じて増量）。
+     <br><span class="muted">毎日10–20%（主にボーラス）増量で追いかけ、低血糖が出たら即減量。</span></div>`;
+}
+
+function historyTable(){
+  if(!S.history.length)return '';
+  let h='<details open style="margin-top:16px"><summary>調整ログ（'+S.history.length+'日）</summary><div class="scrollx"><table><tr><th>日</th><th>FBS</th><th>昼前</th><th>夕前</th><th>就寝前</th><th>主な調整</th></tr>';
+  S.history.forEach(d=>{
+    const f=x=>x==null?'-':(x>=999?'HI':x);
+    h+=`<tr><td>${d.day}</td><td>${f(d.g.fbs)}</td><td>${f(d.g.preL)}</td><td>${f(d.g.preD)}</td><td>${f(d.g.hs)}</td><td class="small">${d.actions[0]||''}</td></tr>`;
+  });
+  h+='</table></div></details>';
+  return h;
+}
+function val(id){return document.getElementById(id).value;}
+
+/* =========================================================
+   STEP4 減量・内服化
+========================================================= */
+function renderTaper(){
+  const box=document.getElementById('taperBody');
+  if(!S.regimen){box.innerHTML='<p class="muted">先に初期レジメンを確定してください。</p>';return;}
+  const p=S.patient,c=S.regimen.cur,r=S.regimen;
+  box.innerHTML=`
+    <div class="alert warn"><b>原則</b>ステロイド減量＝低血糖リスクが急増。<b>減量と同日に</b>インスリンを見直し、変更日と翌日以降 最低48時間はAC/HSを維持して厳重観察。</div>
+    <h3>ステロイド減量の入力</h3>
+    <div class="grid">
+      <label class="fld">現在のステロイド量 (mg/日)<input id="t_old" type="number" value="${p.stDose||''}"></label>
+      <label class="fld">減量後の量 (mg/日)<input id="t_new" type="number" placeholder="例:20"></label>
+      <label class="fld">インスリン減量の連動比率
+        <select id="t_ratio">
+          <option value="0.5">保守的：ステロイド減少率の約50%（既定・低血糖回避優先）</option>
+          <option value="1.0">同率：ステロイド減少率と同じ%</option>
+          <option value="0.3">最小：約30%のみ先行減量</option>
+        </select>
+        <span class="hint">資料に厳密比率の記載はなく「目安」。臨床で調整してください。</span>
+      </label>
+    </div>
+    <div class="row-btns"><button class="btn" onclick="calcTaper()">減量後のインスリン量を計算</button></div>
+    <div id="taperOut"></div>
+
+    <h3 style="margin-top:24px">内服（経口薬）への切り替え判断</h3>
+    <div id="oralGuide">${oralGuide(p)}</div>
+  `;
+}
+
+function calcTaper(){
+  const oldD=parseFloat(val('t_old')), newD=parseFloat(val('t_new'));
+  const ratio=parseFloat(val('t_ratio'));
+  if(!oldD||newD==null||isNaN(newD)){alert('ステロイドの現在量と減量後の量を入力してください。');return;}
+  if(newD>=oldD){document.getElementById('taperOut').innerHTML='<div class="alert info">減量ではありません（同量以上）。</div>';return;}
+  const drop=(oldD-newD)/oldD;            // ステロイド減少率
+  const insReduce=drop*ratio;             // インスリン減少率
+  const c=S.regimen.cur,r=S.regimen;
+  const nn=v=>Math.max(0,rnd(v*(1-insReduce)));
+  const nf=(v,f)=>Math.max(0,rnd(v*(1-Math.min(0.9,f))));   // 任意比率で減量
+  let lines='';
+  if(r.type==='NPH'){
+    lines=`<div class="doseline"><span>NPH〔中間型・朝〕</span><span><span class="v">${nn(c.nph)}</span><span class="u">単位（${c.nph}→）</span></span></div>
+           <div class="doseline"><span>各食前 定時</span><span><span class="v">${nn(c.prandialEach)}</span><span class="u">単位 ×3（${c.prandialEach}→）</span></span></div>`;
+  }else if(r.type==='BBI'){
+    // 昼・夕ボーラスを優先的に減量、基礎・朝ボーラスは控えめに
+    lines=`<div class="doseline"><span>基礎〔持効型・眠前〕</span><span><span class="v">${nf(c.basal,insReduce*0.7)}</span><span class="u">単位（${c.basal}→）</span></span></div>
+           <div class="doseline"><span>ボーラス 朝</span><span><span class="v">${nf(c.bB,insReduce*0.7)}</span><span class="u">単位（${c.bB}→）</span></span></div>
+           <div class="doseline"><span>ボーラス 昼<span class="pill">優先減量</span></span><span><span class="v">${nf(c.bL,insReduce*1.3)}</span><span class="u">単位（${c.bL}→）</span></span></div>
+           <div class="doseline"><span>ボーラス 夕<span class="pill">優先減量</span></span><span><span class="v">${nf(c.bD,insReduce*1.3)}</span><span class="u">単位（${c.bD}→）</span></span></div>`;
+  }else{
+    lines=`<div class="doseline"><span>基礎〔持効型・眠前〕</span><span><span class="v">${nn(c.basal)}</span><span class="u">単位（${c.basal}→）</span></span></div>`;
+  }
+  document.getElementById('taperOut').innerHTML=`
+    <div class="result">
+      <div class="small" style="margin-bottom:6px">ステロイド ${oldD}→${newD} mg（−${Math.round(drop*100)}%） → インスリン約 −${Math.round(insReduce*100)}%（比率${ratio}）</div>
+      <strong>減量後の定時量（同日から）</strong>
+      ${lines}
+    </div>
+    <div class="alert danger"><b>🚨 48時間ルール</b>減量が遅れることが低血糖の典型原因。当日からAC/HSを維持し、夕方〜早朝の低血糖を最優先で監視。中止に向かう段階では更に前倒しで減量。</div>`;
+}
+
+function oralGuide(p){
+  const o=p.orals||[];
+  const has=v=>o.includes(v);
+  let items=[];
+  items.push(`<b>基本方針：</b>ステロイドがほぼ中止／低用量になり、血糖が少量インスリンで目標域に入れば内服へ移行を検討。入院中はインスリン主体が原則。`);
+  if(p.egfr!=null && p.egfr<30 || p.dialysis){
+    items.push(`<span class="badge basal">eGFR&lt;30/透析</span> 経口薬の選択肢は限られ、インスリン主体が安全。DPP-4iは腎用量調整（例：サキサグリプチン2.5mg/日、HD日はHD後）。`);
+  }
+  if(has('metformin')) items.push(`メトホルミン：eGFR&lt;30 では再開不可。eGFR≥30かつ全身状態安定で再開を検討（造影・急性期は休薬）。`);
+  if(has('su')) items.push(`SU/グリニド：低血糖リスクが高く、食事不安定時は休薬／慎重。ステロイド減量期は特に注意。`);
+  if(has('sglt2')) items.push(`SGLT2i：入院中の脱水/周術期/摂取低下では休薬。退院前に状態が安定してから再開を検討。`);
+  if(has('dpp4')) items.push(`DPP-4i：腎用量で継続可。ただしインスリン併用下では効果が小さく、手技簡素化のため整理してもよい。`);
+  if(has('glp1')) items.push(`GLP-1RA：消化器症状・摂取量に注意のうえ継続/再開を判断。`);
+  if(has('tzd')) items.push(`TZD：体液貯留に注意。`);
+  if(o.length===0||has('none')) items.push(`現在 経口薬なし：退院時にHbA1c・腎機能・生活背景に応じて導入を検討。`);
+  return '<ul class="small" style="padding-left:18px;margin:6px 0">'+items.map(i=>'<li>'+i+'</li>').join('')+'</ul>'
+    +'<p class="ref">退院時はステロイドの今後の予定（漸減/継続）と血糖目標を併せて再評価し、必要時に内分泌へ連携。</p>';
+}
+
+/* =========================================================
+   保存（端末内 localStorage・複数患者）
+========================================================= */
+const STORE_KEY='steroidGcTool_v1';
+function defaultRules(){ return {confirm2day:null, scale:[[80,-4],[120,-2],[180,0],[250,2],[350,4],[450,6],[9999,8]]}; }
+function loadStore(){
+  try{ const s=localStorage.getItem(STORE_KEY); return s?JSON.parse(s):{patients:{},activeKey:null}; }
+  catch(e){ return {patients:{},activeKey:null}; }
+}
+function writeStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); return true; }
+  catch(e){ flashStatus('⚠ 保存に失敗しました（ブラウザのストレージ制限）。エクスポートでバックアップしてください。'); return false; }
+}
+function genKey(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function flashStatus(msg){ const el=document.getElementById('saveStatus'); if(el){ el.innerHTML=msg; } }
+
+function autosave(){
+  if(!S.patient) return;
+  if(!S.activeKey) S.activeKey=genKey();
+  const store=loadStore();
+  store.patients[S.activeKey]={
+    patient:S.patient, regimen:S.regimen, history:S.history,
+    override:S.override, rules:S.rules, updatedAt:Date.now()
+  };
+  store.activeKey=S.activeKey;
+  if(writeStore(store)){
+    const t=new Date();
+    flashStatus(`✓ 保存しました（${S.patient.id} / ${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')}）`);
+  }
+  renderPatientBar();
+}
+
+function renderPatientBar(){
+  const sel=document.getElementById('patientSelect'); if(!sel) return;
+  const store=loadStore();
+  const keys=Object.keys(store.patients).sort((a,b)=>(store.patients[b].updatedAt||0)-(store.patients[a].updatedAt||0));
+  let opts='<option value="">（新規 / 患者を選択）</option>';
+  keys.forEach(k=>{
+    const p=store.patients[k].patient||{};
+    const d=new Date(store.patients[k].updatedAt||0);
+    const label=`${p.id||'(無題)'}・${p.weight||'?'}kg・${({psl:'PSL',mpsl:'mPSL',dex:'DEX',hc:'HC'})[p.steroid]||''}（${d.getMonth()+1}/${d.getDate()}）`;
+    opts+=`<option value="${k}"${k===S.activeKey?' selected':''}>${label}</option>`;
+  });
+  sel.innerHTML=opts;
+}
+
+function onSelectPatient(key){
+  if(!key){ return; }
+  const store=loadStore(); const rec=store.patients[key]; if(!rec) return;
+  S.patient=rec.patient; S.regimen=rec.regimen||null; S.history=rec.history||[];
+  S.override=rec.override||null; S.rules=rec.rules||defaultRules(); S.activeKey=key;
+  S._pendingNext=null; S._pendingMeta=null;
+  if(S.regimen) S.regimen.locked=true;   // 保存済みは確定扱い（量を保持）
+  fillForm(S.patient);
+  renderInit(); renderDaily(); renderTaper(); renderPatientBar();
+  flashStatus(`「${S.patient.id}」を読み込みました。`);
+}
+
+function newPatient(){
+  S.patient=null; S.regimen=null; S.history=[]; S.override=null; S.activeKey=null; S.rules=defaultRules();
+  S._pendingNext=null; S._pendingMeta=null;
+  document.querySelectorAll('#reg input').forEach(i=>{ if(i.type!=='file') i.value=''; });
+  setChip('dietChips','regular');
+  document.querySelectorAll('#oralChips .chip').forEach(c=>c.classList.remove('on'));
+  document.getElementById('steroid').value='psl';
+  document.getElementById('dialysis').value='no';
+  document.getElementById('dm').value='t2';
+  document.getElementById('stTiming').value='am1';
+  document.getElementById('regEcho').innerHTML='';
+  renderInit(); renderDaily(); renderTaper(); renderPatientBar();
+  flashStatus('新規患者の入力に切り替えました。');
+}
+
+function deleteActivePatient(){
+  if(!S.activeKey){ flashStatus('保存済みの患者が選択されていません。'); return; }
+  if(!confirm('この患者の保存データを削除します。よろしいですか？')) return;
+  const store=loadStore(); delete store.patients[S.activeKey]; store.activeKey=null; writeStore(store);
+  newPatient();
+  flashStatus('削除しました。');
+}
+
+function fillForm(p){
+  if(!p) return;
+  const v=(id,val)=>{ const el=document.getElementById(id); if(el) el.value=(val==null?'':val); };
+  v('pid',p.id); v('weight',p.weight); v('egfr',p.egfr); v('age',p.age);
+  document.getElementById('dialysis').value=p.dialysis?'yes':'no';
+  document.getElementById('dm').value=p.dm||'t2';
+  setChip('dietChips',p.diet||'regular');
+  document.getElementById('steroid').value=p.steroid||'psl';
+  v('stDose',p.stDose); document.getElementById('stTiming').value=p.stTiming||'am1';
+  document.querySelectorAll('#oralChips .chip').forEach(c=>c.classList.toggle('on',(p.orals||[]).includes(c.dataset.v)));
+  const pr=p.prof||{};
+  v('g_fbs',pr.fbs===999?'HI':pr.fbs); v('g_pre_l',pr.preL===999?'HI':pr.preL);
+  v('g_pre_d',pr.preD===999?'HI':pr.preD); v('g_hs',pr.hs===999?'HI':pr.hs);
+}
+
+function exportJSON(){
+  const store=loadStore();
+  const blob=new Blob([JSON.stringify(store,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const d=new Date();
+  a.href=url; a.download=`steroid_glucose_data_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  flashStatus('全データをJSONに書き出しました（iCloud等に保存してください）。');
+}
+
+function importJSON(file){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const inc=JSON.parse(e.target.result);
+      if(!inc.patients) throw new Error('形式が違います');
+      const store=loadStore();
+      let n=0;
+      Object.keys(inc.patients).forEach(k=>{ store.patients[k]=inc.patients[k]; n++; });
+      writeStore(store); renderPatientBar();
+      flashStatus(`インポート完了：${n}件を取り込みました。リストから選んで読み込んでください。`);
+    }catch(err){ flashStatus('⚠ インポートに失敗：'+err.message); }
+  };
+  reader.readAsText(file);
+}
+
+/* 初期表示 */
+(function init(){
+  const store=loadStore();
+  renderPatientBar();
+  if(store.activeKey && store.patients[store.activeKey]){ onSelectPatient(store.activeKey); }
+  else { renderInit(); renderDaily(); renderTaper(); }
+})();
+</script>
+</body>
+</html>
