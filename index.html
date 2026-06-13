@@ -80,8 +80,8 @@
   .badge.basal{background:#ecfccb;color:#3f6212}
   .pill{font-size:11px;background:var(--line);border-radius:5px;padding:1px 6px;color:var(--muted)}
   .nextfoot{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:10px}
-  .glucinputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
-  .glucinputs label{font-size:12px;font-weight:600}
+  .glucinputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;align-items:end}
+  .glucinputs label{font-size:12px;font-weight:600;display:flex;flex-direction:column;justify-content:flex-end}
   .glucinputs .hint{display:block;font-weight:400;color:var(--muted);font-size:10.5px;margin:1px 0 2px}
   .dayblock{border:1px solid var(--line,#e3e6ea);border-radius:10px;padding:10px 12px;background:rgba(127,127,127,.03)}
   .dayblock h4{font-size:13px;color:var(--muted)}
@@ -119,7 +119,7 @@
 <body>
 <header class="top">
   <h1>ステロイド誘発性高血糖 インスリン調整支援ツール</h1>
-  <p>非ICU入院・朝1回プレドニゾロン想定 / v1（患者登録 → 初期レジメン → 日々調整・強化インスリン移行 → 減量・内服化）</p>
+  <p>非ICU入院・朝1回プレドニゾロン想定 / v1（患者登録 → 初期レジメン → 日々調整・強化インスリン移行 → 減量・内服化）<span style="opacity:.6;font-size:11px"> ・ 版 2026-06-13b</span></p>
 </header>
 <div class="disclaimer">
   <b>⚠ 臨床判断支援ツールです。</b>表示される量・スケールは院内プロトコル案に基づく<b>提案</b>であり、最終決定は必ず指示医が行ってください。院内での妥当性検証を前提とし、患者データは端末内のみで処理（外部送信なし）。
@@ -533,8 +533,8 @@ function renderInit(){
       <div class="doseline"><span>毎食前 定時</span><span><span class="u">原則保留（摂取安定で拡張）</span></span></div>`;
   } else {
     doseHtml=`
-      <div class="doseline"><span>基礎〔持効型・眠前〕</span><span><span class="v">${r.basal}</span><span class="u">単位</span></span></div>
-      <div class="doseline"><span>ボーラス〔超速効型〕 朝 / 昼 / 夕<span class="pill">昼夕厚め</span></span><span><span class="v">${r.bB} / ${r.bL} / ${r.bD}</span><span class="u">単位</span></span></div>`;
+      <div class="doseline"><span>ボーラス〔超速効型〕 朝 / 昼 / 夕<span class="pill">昼夕厚め</span></span><span><span class="v">${r.bB} / ${r.bL} / ${r.bD}</span><span class="u">単位</span></span></div>
+      <div class="doseline"><span>基礎〔持効型・眠前〕</span><span><span class="v">${r.basal}</span><span class="u">単位</span></span></div>`;
   }
 
   box.innerHTML=`
@@ -590,10 +590,10 @@ function editFields(r){
     f=`<label class="fld">NPH〔中間型〕朝 (単位)<input id="e_nph" type="number" min="0" step="1" value="${r.nph}"></label>
        <label class="fld">各食前 定時 (単位 ×3)<input id="e_pe" type="number" min="0" step="1" value="${r.prandialEach}"></label>`;
   } else if(r.type==='BBI'){
-    f=`<label class="fld">基礎〔持効型・眠前〕 (単位)<input id="e_basal" type="number" min="0" step="1" value="${r.basal}"></label>
-       <label class="fld">ボーラス 朝 (単位)<input id="e_bB" type="number" min="0" step="1" value="${r.bB}"></label>
+    f=`<label class="fld">ボーラス 朝 (単位)<input id="e_bB" type="number" min="0" step="1" value="${r.bB}"></label>
        <label class="fld">ボーラス 昼 (単位)<input id="e_bL" type="number" min="0" step="1" value="${r.bL}"></label>
-       <label class="fld">ボーラス 夕 (単位)<input id="e_bD" type="number" min="0" step="1" value="${r.bD}"></label>`;
+       <label class="fld">ボーラス 夕 (単位)<input id="e_bD" type="number" min="0" step="1" value="${r.bD}"></label>
+       <label class="fld">基礎〔持効型・眠前〕 (単位)<input id="e_basal" type="number" min="0" step="1" value="${r.basal}"></label>`;
   } else {
     f=`<label class="fld">基礎〔持効型・眠前〕 (単位)<input id="e_basal" type="number" min="0" step="1" value="${r.basal}"></label>`;
   }
@@ -658,7 +658,7 @@ function renderDaily(){
     ? `NPH〔中間型・朝〕 <b>${c.nph}</b>単位 ／ 各食前 <b>${c.prandialEach}</b>単位`
     : (r.type==='basal'
        ? `基礎〔持効型・眠前〕 <b>${c.basal}</b>単位`
-       : `基礎〔持効型・眠前〕 <b>${c.basal}</b>単位 ／ ボーラス 朝<b>${c.bB}</b>・昼<b>${c.bL}</b>・夕<b>${c.bD}</b>単位`);
+       : `ボーラス 朝<b>${c.bB}</b>・昼<b>${c.bL}</b>・夕<b>${c.bD}</b>単位 ／ 基礎〔持効型・眠前〕 <b>${c.basal}</b>単位`);
 
   box.innerHTML=`
     <div class="alert info"><b>現在の定時量　${r.type==='NPH'?'<span class="badge nph">NPH〔中間型〕</span>':r.type==='BBI'?'<span class="badge bbi">強化インスリン</span>':'<span class="badge basal">基礎</span>'}</b>${curList}</div>
@@ -847,10 +847,10 @@ function nextEditFields(type, n){
     return `<label class="fld">NPH〔中間型・朝〕(単位)<input id="n_nph" type="number" min="0" step="1" value="${n.nph}"></label>
        <label class="fld">各食前 定時 (単位 ×3)<input id="n_pe" type="number" min="0" step="1" value="${n.prandialEach}"></label>`;
   } else if(type==='BBI'){
-    return `<label class="fld">基礎〔持効型・眠前〕(単位)<input id="n_basal" type="number" min="0" step="1" value="${n.basal}"></label>
-       <label class="fld">ボーラス 朝 (単位)<input id="n_bB" type="number" min="0" step="1" value="${n.bB}"></label>
+    return `<label class="fld">ボーラス 朝 (単位)<input id="n_bB" type="number" min="0" step="1" value="${n.bB}"></label>
        <label class="fld">ボーラス 昼 (単位)<input id="n_bL" type="number" min="0" step="1" value="${n.bL}"></label>
-       <label class="fld">ボーラス 夕 (単位)<input id="n_bD" type="number" min="0" step="1" value="${n.bD}"></label>`;
+       <label class="fld">ボーラス 夕 (単位)<input id="n_bD" type="number" min="0" step="1" value="${n.bD}"></label>
+       <label class="fld">基礎〔持効型・眠前〕(単位)<input id="n_basal" type="number" min="0" step="1" value="${n.basal}"></label>`;
   } else {
     return `<label class="fld">基礎〔持効型・眠前〕(単位)<input id="n_basal" type="number" min="0" step="1" value="${n.basal}"></label>`;
   }
@@ -967,10 +967,13 @@ function deleteDay(date){
 function doseSummary(dose){
   if(!dose) return '-';
   const parts=[];
+  const hasBolus = dose.bB||dose.bL||dose.bD;
   if(dose.nph) parts.push('NPH '+dose.nph);
-  if(dose.basal) parts.push('基礎 '+dose.basal);
-  if(dose.prandialEach) parts.push('食前 '+dose.prandialEach);
-  if(dose.bB||dose.bL||dose.bD) parts.push(`朝${dose.bB||0}・昼${dose.bL||0}・夕${dose.bD||0}`);
+  // 食前定時はNPH系のみ（強化インスリン=朝/昼/夕ボーラスがある場合は表示しない）
+  if(dose.prandialEach && !hasBolus) parts.push('食前 '+dose.prandialEach);
+  if(hasBolus) parts.push(`朝${dose.bB||0}・昼${dose.bL||0}・夕${dose.bD||0}`);
+  // 基礎は眠前なので最後に表示
+  if(dose.basal) parts.push('基礎〔眠前〕'+dose.basal);
   return parts.length?parts.join(' / '):'-';
 }
 function dailyLogTable(){
