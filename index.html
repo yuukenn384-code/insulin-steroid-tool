@@ -82,6 +82,9 @@
   .nextfoot{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:10px}
   .glucinputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
   .glucinputs label{font-size:12px;font-weight:600}
+  .glucinputs .hint{display:block;font-weight:400;color:var(--muted);font-size:10.5px;margin:1px 0 2px}
+  .dayblock{border:1px solid var(--line,#e3e6ea);border-radius:10px;padding:10px 12px;background:rgba(127,127,127,.03)}
+  .dayblock h4{font-size:13px;color:var(--muted)}
   details{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:6px 12px;background:#fafbfc}
   summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--brand-d)}
   .ref{font-size:11px;color:var(--muted);margin-top:2px}
@@ -660,17 +663,18 @@ function renderDaily(){
   box.innerHTML=`
     <div class="alert info"><b>現在の定時量　${r.type==='NPH'?'<span class="badge nph">NPH〔中間型〕</span>':r.type==='BBI'?'<span class="badge bbi">強化インスリン</span>':'<span class="badge basal">基礎</span>'}</b>${curList}</div>
 
-    <p class="muted" style="margin:0 0 6px">その日の血糖を記録します。<b>基礎は当日朝の空腹血糖</b>、<b>ボーラス（朝/昼/夕）は前日の昼前/夕前/就寝前</b>を見て本日量を提案します（スライディングは扱いません）。</p>
-    <h3 id="d_formTitle">血糖の記録（その日のAC/HS, mg/dL）</h3>
+    <p class="muted" style="margin:0 0 6px">朝にまとめて入力します。<b>前日の昼前/夕前/就寝前</b>でボーラス（朝/昼/夕）を、<b>当日朝の空腹FBS</b>で眠前の基礎を調整します（スライディングは扱いません）。前日朝のFBSは前日に入力済みの値を表示します（訂正可）。</p>
+    <h3 id="d_formTitle">血糖の記録（朝の入力）</h3>
     <div class="grid" style="margin-bottom:6px">
-      <label class="fld">日付<input id="d_date" type="date" value="${todayISO()}"></label>
+      <label class="fld">当日の日付<input id="d_date" type="date" value="${todayISO()}" onchange="syncPrevBlock()"></label>
     </div>
-    <div class="glucinputs">
-      <label>朝食前/FBS<input id="d_fbs" type="text" placeholder="HI可"></label>
-      <label>昼食前<input id="d_preL" type="text"></label>
-      <label>夕食前<input id="d_preD" type="text"></label>
-      <label>就寝前<input id="d_hs" type="text"></label>
-      <label>夜間/早朝 低血糖<select id="d_hypo"><option value="no">なし</option><option value="yes">あり(&lt;70/症状)</option></select></label>
+    <div id="prevBlock">${prevBlockHTML(todayISO())}</div>
+    <div class="dayblock" style="margin-top:10px">
+      <h4 style="margin:6px 0">当日（<span id="d_todayLabel">${todayISO()}</span>）— 今朝の測定 → 眠前の基礎を決定</h4>
+      <div class="glucinputs">
+        <label>朝食前/FBS（空腹）<input id="d_fbs" type="text" placeholder="HI可"></label>
+        <label>夜間/早朝 低血糖<select id="d_hypo"><option value="no">なし</option><option value="yes">あり(&lt;70/症状)</option></select></label>
+      </div>
     </div>
 
     ${ruleSettingsPanel()}
@@ -684,6 +688,29 @@ function renderDaily(){
 
     ${dailyLogTable()}
   `;
+}
+
+// 前日ブロック（直近の記録がある日 = 前日相当）。日中の血糖はボーラス調整に、朝FBSは表示・訂正可。
+function prevBlockHTML(today){
+  const prev=prevRecord(today);
+  if(!prev){
+    return `<div class="dayblock"><h4 style="margin:6px 0">前日 — 記録なし（初日）</h4>
+      <p class="muted" style="margin:0">前日の記録がないため、本日はボーラスを据え置き、当日朝の空腹で基礎のみ調整します。</p></div>`;
+  }
+  const vv=x=>(x==null?'':(x>=999?'HI':x));
+  return `<div class="dayblock"><h4 style="margin:6px 0">前日（${prev.date}）— 日中の血糖 → 朝/昼/夕ボーラスを決定</h4>
+    <div class="glucinputs">
+      <label>朝食前/FBS<span class="hint">前日入力済・訂正可</span><input id="p_fbs" type="text" value="${vv(prev.g.fbs)}"></label>
+      <label>昼食前<input id="p_preL" type="text" value="${vv(prev.g.preL)}"></label>
+      <label>夕食前<input id="p_preD" type="text" value="${vv(prev.g.preD)}"></label>
+      <label>就寝前<input id="p_hs" type="text" value="${vv(prev.g.hs)}"></label>
+    </div></div>`;
+}
+// 当日の日付が変わったとき、前日ブロックと当日ラベルだけ更新（当日FBSの入力は保持）。
+function syncPrevBlock(){
+  const today=val('d_date')||todayISO();
+  const pb=document.getElementById('prevBlock'); if(pb) pb.innerHTML=prevBlockHTML(today);
+  const tl=document.getElementById('d_todayLabel'); if(tl) tl.innerText=today;
 }
 
 function ruleSettingsPanel(){
@@ -717,13 +744,20 @@ function adjScaleTable(){
 
 function calcNextDay(){
   const r=S.regimen, c=r.cur;
-  const f=readDayForm();
-  // その日の血糖を記録（採用前でも血糖は保存・参照/編集可能にするため）
-  upsertDay({date:f.date, g:f.g, hypo:f.hypo});
+  const today=(val('d_date')||todayISO());
+  // 前日ブロックの日中血糖 → 前日レコードにマージ保存（既存の朝FBS等は保持、訂正があれば反映）
+  const prev0=prevRecord(today);
+  if(prev0){ upsertDay({date:prev0.date, g:readPrevForm()}); }
+  // 当日ブロック（朝FBS・夜間/早朝低血糖）→ 当日レコードにマージ保存
+  const tf=readTodayForm();
+  upsertDay({date:today, g:{fbs:tf.fbs}, hypo:tf.hypo});
   autosave();
-  const g=f.g, hypo=f.hypo;
-  const prev=prevRecord(f.date), prev2=prev2Record(f.date);
-  const arr=[g.fbs,g.preL,g.preD,g.hs].filter(x=>x!=null);
+  const tRec=recordFor(today)||{g:{}};
+  const g=tRec.g, hypo=tf.hypo;
+  const prev=prevRecord(today), prev2=prev2Record(today);
+  const prevG=prev?prev.g:{};
+  // エスカレーション判定は、この朝に確認した値（当日朝FBS＋前日の各時点）の最高で行う
+  const arr=[g.fbs,prevG.fbs,prevG.preL,prevG.preD,prevG.hs].filter(x=>x!=null);
   const mx=arr.length?Math.max(...arr):null;
   const need2 = effConfirm2day();
 
@@ -792,11 +826,11 @@ function calcNextDay(){
 
   // プレビューのみ：定時量(dose)はここでは記録しない（採用時に記録）。血糖は上で記録済み。
   S._pendingNext = next;
-  S._pendingMeta = { date:f.date, g, hypo, actions: actions.slice() };
+  S._pendingMeta = { date:today, g, hypo, actions: actions.slice() };
 
   // 出力
   let out=alerts.join('');
-  out+=`<div class="result"><strong>調整内容（${f.date}）</strong><ul class="small" style="margin:8px 0 4px;padding-left:18px">${actions.map(a=>'<li>'+a+'</li>').join('')}</ul>`;
+  out+=`<div class="result"><strong>調整内容（${today}）</strong><ul class="small" style="margin:8px 0 4px;padding-left:18px">${actions.map(a=>'<li>'+a+'</li>').join('')}</ul>`;
   out+=`<div style="margin-top:10px"><strong>本日の定時量（提案・編集可）</strong>
         <p class="sub" style="margin:4px 0 8px">必要なら値を修正してから「採用」してください。空欄は0として扱います。</p>
         <div class="grid">${nextEditFields(r.type, next)}</div></div>`;
@@ -878,38 +912,52 @@ function recordFor(date){ return S.log.find(e=>e.date===date)||null; }
 function prevRecord(date){ const e=S.log.filter(x=>x.date<date); return e.length?e[e.length-1]:null; }
 // 指定日より前で2番目に新しい記録（前々日相当・2日確認用）。
 function prev2Record(date){ const e=S.log.filter(x=>x.date<date); return e.length>=2?e[e.length-2]:null; }
-function readDayForm(){
-  return { date: (val('d_date')||todayISO()),
-    g:{fbs:parseG(val('d_fbs')),preL:parseG(val('d_preL')),preD:parseG(val('d_preD')),hs:parseG(val('d_hs'))},
-    hypo: val('d_hypo')==='yes' };
+function readTodayForm(){
+  return { date:(val('d_date')||todayISO()), fbs:parseG(val('d_fbs')), hypo: val('d_hypo')==='yes' };
 }
-// 同一日付があれば上書き、なければ追加。dose は渡された時のみ更新（血糖記録時に既存doseを消さない）。
+function readPrevForm(){
+  return { fbs:parseG(val('p_fbs')), preL:parseG(val('p_preL')), preD:parseG(val('p_preD')), hs:parseG(val('p_hs')) };
+}
+// g をフィールド単位でマージ（渡された非null値だけ上書き。既存の他項目＝前日朝FBS等は消さない）。
+function mergeG(oldG,newG){
+  const out=Object.assign({}, oldG||{});
+  ['fbs','preL','preD','hs'].forEach(k=>{ if(newG && newG[k]!=null) out[k]=newG[k]; });
+  return out;
+}
+// 同一日付があればマージ、なければ追加。hypo/dose は渡された時のみ更新（既存値を不用意に消さない）。
 function upsertDay(rec){
   const ex=recordFor(rec.date);
-  if(ex){ ex.g=rec.g; ex.hypo=rec.hypo; if(rec.dose!==undefined && rec.dose!==null) ex.dose=rec.dose; sortLog(); return ex; }
-  S.log.push({date:rec.date, g:rec.g, hypo:rec.hypo, dose:(rec.dose!==undefined?rec.dose:null)}); sortLog();
+  if(ex){ ex.g=mergeG(ex.g, rec.g); if(rec.hypo!==undefined) ex.hypo=rec.hypo; if(rec.dose!==undefined && rec.dose!==null) ex.dose=rec.dose; sortLog(); return ex; }
+  S.log.push({date:rec.date, g:Object.assign({}, rec.g||{}), hypo:!!rec.hypo, dose:(rec.dose!==undefined?rec.dose:null)}); sortLog();
   return recordFor(rec.date);
 }
 function saveDay(){
-  const f=readDayForm();
-  upsertDay({date:f.date, g:f.g, hypo:f.hypo});
+  const today=(val('d_date')||todayISO());
+  const prev0=prevRecord(today);
+  if(prev0){ upsertDay({date:prev0.date, g:readPrevForm()}); }
+  const tf=readTodayForm();
+  upsertDay({date:today, g:{fbs:tf.fbs}, hypo:tf.hypo});
   autosave(); renderDaily();
-  flashStatus('血糖を記録しました（'+f.date+'）。');
+  flashStatus('血糖を記録しました（'+today+'）。');
 }
 function clearDayForm(){
-  ['d_fbs','d_preL','d_preD','d_hs'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  ['d_fbs','p_fbs','p_preL','p_preD','p_hs'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   const dd=document.getElementById('d_date'); if(dd) dd.value=todayISO();
   const hy=document.getElementById('d_hypo'); if(hy) hy.value='no';
-  const ft=document.getElementById('d_formTitle'); if(ft) ft.innerText='血糖の記録（その日のAC/HS, mg/dL）';
+  syncPrevBlock();
+  const ft=document.getElementById('d_formTitle'); if(ft) ft.innerText='血糖の記録（朝の入力）';
   const nd=document.getElementById('nextDayOut'); if(nd) nd.innerHTML='';
 }
+// ログ行の編集：その日を「当日」に据え、当日朝FBS/低血糖を読み込む。日中値（昼前/夕前/就寝前）は
+// 翌日を当日に選ぶと前日ブロックに現れ訂正できる。
 function editDay(date){
   const rec=recordFor(date); if(!rec) return;
+  const dd=document.getElementById('d_date'); if(dd) dd.value=rec.date;
+  syncPrevBlock();
   const v=(id,x)=>{const el=document.getElementById(id); if(el) el.value=(x==null?'':(x>=999?'HI':x));};
-  document.getElementById('d_date').value=rec.date;
-  v('d_fbs',rec.g.fbs); v('d_preL',rec.g.preL); v('d_preD',rec.g.preD); v('d_hs',rec.g.hs);
-  document.getElementById('d_hypo').value=rec.hypo?'yes':'no';
-  const ft=document.getElementById('d_formTitle'); if(ft) ft.innerText='血糖の記録（'+rec.date+' を編集中・保存で上書き）';
+  v('d_fbs',rec.g.fbs);
+  const hy=document.getElementById('d_hypo'); if(hy) hy.value=rec.hypo?'yes':'no';
+  const ft=document.getElementById('d_formTitle'); if(ft) ft.innerText='編集中：'+rec.date+'（当日朝＝この日／日中値は翌日を当日に選ぶと前日ブロックで訂正可）';
   if(typeof window!=='undefined' && window.scrollTo) window.scrollTo({top:0,behavior:'smooth'});
 }
 function deleteDay(date){
