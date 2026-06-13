@@ -119,7 +119,7 @@
 <body>
 <header class="top">
   <h1>ステロイド誘発性高血糖 インスリン調整支援ツール</h1>
-  <p>非ICU入院・朝1回プレドニゾロン想定 / v1（患者登録 → 初期レジメン → 日々調整・強化インスリン移行 → 減量・内服化）<span style="opacity:.6;font-size:11px"> ・ 版 2026-06-13c</span></p>
+  <p>非ICU入院・朝1回プレドニゾロン想定 / v1（患者登録 → 初期レジメン → 日々調整・強化インスリン移行 → 減量・内服化）<span style="opacity:.6;font-size:11px"> ・ 版 2026-06-13d</span></p>
 </header>
 <div class="disclaimer">
   <b>⚠ 臨床判断支援ツールです。</b>表示される量・スケールは院内プロトコル案に基づく<b>提案</b>であり、最終決定は必ず指示医が行ってください。院内での妥当性検証を前提とし、患者データは端末内のみで処理（外部送信なし）。
@@ -982,9 +982,14 @@ function doseSummary(dose){
   if(dose.nph) parts.push('NPH '+dose.nph);
   // 食前定時はNPH系のみ（強化インスリン=朝/昼/夕ボーラスがある場合は表示しない）
   if(dose.prandialEach && !hasBolus) parts.push('食前 '+dose.prandialEach);
-  if(hasBolus) parts.push(`朝${dose.bB||0}・昼${dose.bL||0}・夕${dose.bD||0}`);
-  // 基礎は眠前なので最後に表示
-  if(dose.basal) parts.push('基礎〔眠前〕'+dose.basal);
+  if(hasBolus){
+    // 朝・昼・夕に続けて眠前基礎も同じ並びで（改行を避け1まとまり）。眠＝眠前の基礎
+    let s=`朝${dose.bB||0}・昼${dose.bL||0}・夕${dose.bD||0}`;
+    if(dose.basal) s+=`・眠${dose.basal}`;
+    parts.push(s);
+  } else if(dose.basal){
+    parts.push('眠'+dose.basal);
+  }
   return parts.length?parts.join(' / '):'-';
 }
 function dailyLogTable(){
