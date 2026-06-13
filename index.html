@@ -119,7 +119,7 @@
 <body>
 <header class="top">
   <h1>ステロイド誘発性高血糖 インスリン調整支援ツール</h1>
-  <p>非ICU入院・朝1回プレドニゾロン想定 / v1（患者登録 → 初期レジメン → 日々調整・強化インスリン移行 → 減量・内服化）<span style="opacity:.6;font-size:11px"> ・ 版 2026-06-13b</span></p>
+  <p>非ICU入院・朝1回プレドニゾロン想定 / v1（患者登録 → 初期レジメン → 日々調整・強化インスリン移行 → 減量・内服化）<span style="opacity:.6;font-size:11px"> ・ 版 2026-06-13c</span></p>
 </header>
 <div class="disclaimer">
   <b>⚠ 臨床判断支援ツールです。</b>表示される量・スケールは院内プロトコル案に基づく<b>提案</b>であり、最終決定は必ず指示医が行ってください。院内での妥当性検証を前提とし、患者データは端末内のみで処理（外部送信なし）。
@@ -641,6 +641,7 @@ function confirmRegimen(){
   S.regimen.locked=true;   // 確定：以後 renderInit で上書きしない
   // 実効TDDを更新表示用に再計算
   S.regimen.tdd=(cur.nph||0)+(cur.basal||0)+(cur.prandialEach||0)*3+(cur.bB||0)+(cur.bL||0)+(cur.bD||0);
+  seedBaselineFromProfile();   // 初回のみ：登録プロファイルを前日のベースライン記録に
   autosave();
   renderDaily(); renderTaper();
   goTab('daily');
@@ -906,6 +907,16 @@ function switchBBI(){
 
 /* ---- デイリーログ（日付ごとの血糖・定時量の記録） ---- */
 function todayISO(){ const d=new Date(); const z=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
+function prevDateISO(iso){ const d=new Date((iso||todayISO())+'T00:00:00'); d.setDate(d.getDate()-1); const z=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
+// 新規登録時：登録の血糖プロファイル（直近24h）を「前日」のベースライン記録として1行残す（ログが空のときだけ）。
+function seedBaselineFromProfile(){
+  if(!S.patient || !S.patient.prof) return;
+  if(S.log && S.log.length) return;
+  const pr=S.patient.prof, g={};
+  ['fbs','preL','preD','hs'].forEach(k=>{ if(pr[k]!=null) g[k]=pr[k]; });
+  if(Object.keys(g).length===0) return;
+  upsertDay({date:prevDateISO(todayISO()), g, hypo:false});
+}
 function sortLog(){ S.log.sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0)); }
 function recordFor(date){ return S.log.find(e=>e.date===date)||null; }
 // 指定日より前で最も新しい記録（前日相当）。S.log はソート済み前提。
